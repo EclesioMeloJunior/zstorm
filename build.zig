@@ -1,38 +1,33 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
-
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
-        .name = "polkadot-zig",
+        .name = "zstorm",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
+        .target = .{
+            .cpu_arch = std.Target.Cpu.Arch.x86_64,
+        },
         .optimize = optimize,
     });
 
     exe.linkLibC();
-    exe.linkLibCpp();
+    exe.addLibraryPath("includes");
     exe.addIncludePath("includes");
-    exe.addCSourceFile("includes/test_binding.cpp", &.{});
+    exe.addObjectFile("./includes/golibp2p.a");
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(exe);
+
+    const go = build_go(b);
+    const make_step = b.step("go", "Make go executable");
+    make_step.dependOn(&go.step);
 
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
@@ -72,4 +67,18 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+}
+
+fn build_go(b: *std.build.Builder) *std.build.RunStep {
+    const go = b.addSystemCommand(&[_][]const u8{
+        "go",
+        "build",
+        "-buildmode",
+        "c-archive",
+        "-o",
+        "./includes/golibp2p.a",
+        "./go/libp2p.go",
+    });
+
+    return go;
 }
