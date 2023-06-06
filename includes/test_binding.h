@@ -1,0 +1,1 @@
+void greetings(const char *s);

@@ -1,0 +1,6 @@
+zig-out/
+zig-cache/
+*.out
+.vscode
+CMakeFiles/
+_3rdParty/

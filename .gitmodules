@@ -1,0 +1,3 @@
+[submodule "cpp-libp2p"]
+	path = cpp-libp2p
+	url = https://github.com/libp2p/cpp-libp2p
